@@ -12,15 +12,20 @@ CREATE PROCEDURE [dbo].[ApplicantsTransfer_LoadJSON]
     
 AS
 BEGIN
+    --  drop and recreate the load table
 	DROP TABLE IF EXISTS ApplicantsTransfer
 
     DECLARE @JSON varchar(max)
     SELECT @JSON=BulkColumn
+
+    -- the hard coded file path must match the column
     FROM OPENROWSET (BULK 'd:\PS\ApplicantTransfer\LIVE-pvg_pgde_api.json', SINGLE_NCLOB) import
+    -- use SINGLE_CLOB if the file is UTF-8
 
     SELECT * INTO ApplicantsTransfer
     FROM OPENJSON (@JSON, '$.applicants')
     WITH (
+        -- fields based on the schema of the JSON file
         [ucasID] [int] ,
         [applicantNumber] [int] ,
         [applicationStatus] [varchar](10) ,
@@ -49,7 +54,7 @@ BEGIN
         [acadYear] [int] ,
         [sessionStartDate] [date] ,
         [preAllocRegNumber] [int] ,
-	[contactPrefValue] [char]
+	    [contactPrefValue] [char]
 
     )
 END
