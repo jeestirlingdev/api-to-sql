@@ -17,9 +17,12 @@ BEGIN
 
 MERGE Applicants AS t  
      USING (SELECT * from ApplicantsTransfer) AS s  
+
+    --  match records based on these key fields
      ON t.applicantNumber = s.applicantNumber  AND t.choiceNumber = s.choiceNumber
 
     WHEN MATCHED 
+        -- where the record already exists update it to match the JSON regardless of whether any values have changed
         THEN UPDATE SET 
              t.ucasID = s.ucasID ,
             t.applicationStatus = s.applicationStatus ,
@@ -49,9 +52,10 @@ MERGE Applicants AS t
             t.sessionStartDate = s.sessionStartDate ,
             t.preAllocRegNumber = s.preAllocRegNumber ,
 	        t.contactPrefValue = s.contactPrefValue ,
-            t.Updated = GetDate()
+            t.Updated = GetDate() -- column not in JSON used for tracking
 
     WHEN NOT MATCHED BY TARGET THEN  
+        -- if a record is in the load table but not the target insert it into the target
         INSERT ([ucasID]
            ,[applicantNumber]
            ,[applicationStatus]
@@ -116,6 +120,7 @@ MERGE Applicants AS t
     WHEN NOT MATCHED BY SOURCE   
         THEN DELETE  
     OUTPUT 
+        -- the output recordset itemises all the changes made to the Target table
         $action AS Action, 
         IIF($action = 'delete', Deleted.applicantNumber, Inserted.applicantNumber) As ApplicantNumber, 
         IIF($action = 'delete', Deleted.choiceNumber, Inserted.choiceNumber) AS ChoiceNumber
